@@ -31,7 +31,7 @@ SCALE_RULE_NAME="http-autoscaler"
 # Paste your Application Insights connection string here (from Azure Portal →
 # Application Insights → Settings → Properties → Connection String).
 # This is passed as an environment variable to every Container App.
-AI_CONNECTION_STRING="InstrumentationKey=60515101-cf69-427c-9fb6-a77a4b48a935;IngestionEndpoint=https://southeastasia-1.in.applicationinsights.azure.com/;LiveEndpoint=https://southeastasia.livediagnostics.monitor.azure.com/;ApplicationId=df3a0678-ee4f-47a5-899e-6876cecdcf08"
+AI_CONNECTION_STRING="InstrumentationKey=aa74e670-d8b5-4722-affb-40bab90974f2;IngestionEndpoint=https://southeastasia-1.in.applicationinsights.azure.com/;LiveEndpoint=https://southeastasia.livediagnostics.monitor.azure.com/;ApplicationId=fd7bc746-922e-441b-9ab0-5d0d06bb0579"
 
 # ===================== REVISION / CANARY =====================================
 OLD_TAG="v1"
