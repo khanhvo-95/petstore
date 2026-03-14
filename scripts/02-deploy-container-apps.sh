@@ -7,18 +7,9 @@
 ###############################################################################
 set -euo pipefail
 
-# ===================== CONFIGURATION - EDIT THESE VALUES =====================
-RESOURCE_GROUP="auto-demo-rg"
-LOCATION="southeastasia"
-ACR_NAME="voautodemopetstoreappcontainer"
-IMAGE_TAG="v1"
-APP_NAME="petstore-app"
-PET_SERVICE_NAME="petstore-petservice"
-PRODUCT_SERVICE_NAME="petstore-productservice"
-ORDER_SERVICE_NAME="petstore-orderservice"
-ENVIRONMENT_NAME="petstore-container-env"
-MIN_REPLICAS=1
-MAX_REPLICAS=5
+# ===================== LOAD SHARED CONFIGURATION =============================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
 # =============================================================================
 
 # ===================== PRE-FLIGHT CHECKS =====================================
@@ -81,6 +72,7 @@ az containerapp create \
   --min-replicas "$MIN_REPLICAS" \
   --max-replicas "$MAX_REPLICAS" \
   --revision-suffix "$IMAGE_TAG" \
+  --env-vars "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
   -o none
 echo "  ✅ PetService deployed."
 
@@ -102,6 +94,7 @@ az containerapp create \
   --min-replicas "$MIN_REPLICAS" \
   --max-replicas "$MAX_REPLICAS" \
   --revision-suffix "$IMAGE_TAG" \
+  --env-vars "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
   -o none
 echo "  ✅ ProductService deployed."
 
@@ -130,6 +123,7 @@ az containerapp create \
   --max-replicas "$MAX_REPLICAS" \
   --revision-suffix "$IMAGE_TAG" \
   --env-vars "PETSTOREPRODUCTSERVICE_URL=$PRODUCT_URL" \
+    "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
   -o none
 echo "  ✅ OrderService deployed."
 
@@ -174,6 +168,8 @@ az containerapp create \
     "PETSTOREPETSERVICE_URL=$PET_URL" \
     "PETSTOREPRODUCTSERVICE_URL=$PRODUCT_URL" \
     "PETSTOREORDERSERVICE_URL=$ORDER_URL" \
+    "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
+    "APPLICATIONINSIGHTS_ENABLED=true" \
   -o none
 echo "  ✅ PetStoreApp deployed."
 
@@ -195,4 +191,3 @@ echo "  📦 ProductService:   $PRODUCT_URL"
 echo "  🛒 OrderService:     $ORDER_URL"
 echo ""
 echo "Next: Run 03-configure-autoscaling.sh"
-

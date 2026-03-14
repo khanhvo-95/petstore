@@ -9,15 +9,9 @@
 ###############################################################################
 set -euo pipefail
 
-# ===================== CONFIGURATION - EDIT THESE VALUES =====================
-RESOURCE_GROUP="auto-demo-rg"
-ACR_NAME="voautodemopetstoreappcontainer"
-APP_NAME="petstore-app"
-OLD_TAG="v1"
-NEW_TAG="v2"
-
-# Traffic split: percentage for the NEW revision during canary phase
-CANARY_TRAFFIC_PERCENT=20   # New revision gets 20%, old gets 80%
+# ===================== LOAD SHARED CONFIGURATION =============================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
 # =============================================================================
 
 # ===================== PRE-FLIGHT CHECKS =====================================
@@ -46,7 +40,6 @@ echo ""
 # =============================================================================
 
 ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "============================================"
@@ -148,4 +141,3 @@ echo "============================================"
 echo "  To complete Blue/Green (switch all traffic to $NEW_TAG):"
 echo "  Run: ./05-switch-traffic.sh"
 echo "============================================"
-

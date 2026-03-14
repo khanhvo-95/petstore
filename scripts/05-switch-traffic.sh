@@ -6,11 +6,9 @@
 ###############################################################################
 set -euo pipefail
 
-# ===================== CONFIGURATION - EDIT THESE VALUES =====================
-RESOURCE_GROUP="auto-demo-rg"
-APP_NAME="petstore-app"
-OLD_TAG="v1"
-NEW_TAG="v2"
+# ===================== LOAD SHARED CONFIGURATION =============================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
 # =============================================================================
 
 OLD_REVISION_NAME="${APP_NAME}--${OLD_TAG}"

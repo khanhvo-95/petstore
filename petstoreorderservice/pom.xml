@@ -21,6 +21,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <springdoc.version>2.8.8</springdoc.version>
         <lombok.version>1.18.36</lombok.version>
+        <applicationinsights.version>3.7.1</applicationinsights.version>
         <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss</maven.build.timestamp.format>
         <httpclient.version>4.5.14</httpclient.version>
     </properties>
@@ -56,6 +57,11 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>applicationinsights-runtime-attach</artifactId>
+            <version>${applicationinsights.version}</version>
         </dependency>
     </dependencies>
 

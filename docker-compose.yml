@@ -7,8 +7,8 @@ services:
     env_file:
       - .env
     environment:
-      # Set to true if you have a connection string set in .env:
-      - APPLICATIONINSIGHTS_ENABLED=false
+      - APPLICATIONINSIGHTS_ENABLED=true
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}
       # Enables External ID login/logout flow locally. Set additional configs in .env:
       - PETSTORE_SECURITY_ENABLED=false
 
@@ -19,6 +19,8 @@ services:
       - "8081:8081"
     env_file:
       - .env
+    environment:
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}
 
   petstoreproductservice:
     build:
@@ -27,6 +29,8 @@ services:
       - "8082:8082"
     env_file:
       - .env
+    environment:
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}
 
   petstoreorderservice:
     build:
@@ -35,3 +39,5 @@ services:
       - "8083:8083"
     env_file:
       - .env
+    environment:
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}

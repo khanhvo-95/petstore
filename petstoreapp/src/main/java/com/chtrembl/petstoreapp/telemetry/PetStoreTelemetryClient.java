@@ -14,7 +14,12 @@ import java.util.Map;
 
 /**
  * Custom TelemetryClient that sends data to Application Insights.
- * This version actually sends telemetry data instead of just logging.
+ * <p>
+ * In Application Insights 3.x, the runtime attach agent (ApplicationInsights.attach())
+ * automatically intercepts TelemetryClient calls and routes them to the configured
+ * connection string (APPLICATIONINSIGHTS_CONNECTION_STRING env var).
+ * <p>
+ * So we just create {@code new TelemetryClient()} and the agent takes care of the rest.
  */
 @Component
 public class PetStoreTelemetryClient {
@@ -26,6 +31,12 @@ public class PetStoreTelemetryClient {
 
     public PetStoreTelemetryClient() {
         this.telemetryClient = new TelemetryClient();
+        String connectionString = System.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING");
+        if (connectionString != null && !connectionString.isEmpty()) {
+            logger.info("PetStoreTelemetryClient initialized - Application Insights agent will route telemetry via APPLICATIONINSIGHTS_CONNECTION_STRING");
+        } else {
+            logger.info("PetStoreTelemetryClient initialized WITHOUT connection string - telemetry will only be logged locally");
+        }
     }
 
     public void track(Object telemetry) {

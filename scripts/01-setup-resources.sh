@@ -5,11 +5,9 @@
 ###############################################################################
 set -euo pipefail
 
-# ===================== CONFIGURATION - EDIT THESE VALUES =====================
-RESOURCE_GROUP="auto-demo-rg"
-LOCATION="southeastasia"
-ACR_NAME="voautodemopetstoreappcontainer"          # Must be globally unique, lowercase, alphanumeric only
-IMAGE_TAG="v1"
+# ===================== LOAD SHARED CONFIGURATION =============================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
 # =============================================================================
 
 # ===================== PRE-FLIGHT CHECKS =====================================
@@ -74,7 +72,6 @@ echo "============================================"
 echo "[3/3] Logging in to ACR..."
 az acr login --name "$ACR_NAME"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Build and push each service using `az acr build` (cloud-side build, no local Docker needed)
@@ -102,4 +99,3 @@ echo "  - ACR:            $ACR_LOGIN_SERVER"
 echo "  - Images pushed:  ${SERVICES[*]} (tag: $IMAGE_TAG)"
 echo ""
 echo "Next: Run 02-deploy-container-apps.sh"
-

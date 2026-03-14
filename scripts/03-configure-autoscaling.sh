@@ -6,18 +6,9 @@
 ###############################################################################
 set -euo pipefail
 
-# ===================== CONFIGURATION - EDIT THESE VALUES =====================
-RESOURCE_GROUP="auto-demo-rg"
-APP_NAME="petstore-app"
-PET_SERVICE_NAME="petstore-petservice"
-PRODUCT_SERVICE_NAME="petstore-productservice"
-ORDER_SERVICE_NAME="petstore-orderservice"
-
-# Autoscaling settings
-MIN_REPLICAS=1
-MAX_REPLICAS=5
-CONCURRENT_REQUESTS=10    # Number of concurrent HTTP requests to trigger scaling
-SCALE_RULE_NAME="http-autoscaler"
+# ===================== LOAD SHARED CONFIGURATION =============================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
 # =============================================================================
 
 # ===================== PRE-FLIGHT CHECKS =====================================
@@ -82,4 +73,3 @@ echo "Example:"
 echo "  k6 run k6-load-tests/gradual-rampup.js"
 echo ""
 echo "Next: Run 04-deploy-revision-v2.sh"
-
