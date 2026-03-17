@@ -120,11 +120,12 @@
             <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure</groupId>
-            <artifactId>applicationinsights-runtime-attach</artifactId>
-            <version>${applicationinsights.version}</version>
-        </dependency>
+        <!--
+            applicationinsights-runtime-attach is REMOVED because the Dockerfile
+            already uses -javaagent:applicationinsights-agent.jar.
+            Having both causes a double-attach conflict that prevents telemetry
+            from reaching Application Insights.
+        -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>applicationinsights-core</artifactId>

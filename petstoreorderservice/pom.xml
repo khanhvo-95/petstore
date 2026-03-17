@@ -58,11 +58,11 @@
             <artifactId>httpclient</artifactId>
             <version>${httpclient.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure</groupId>
-            <artifactId>applicationinsights-runtime-attach</artifactId>
-            <version>${applicationinsights.version}</version>
-        </dependency>
+        <!--
+            applicationinsights-runtime-attach REMOVED: the Dockerfile uses
+            -javaagent:applicationinsights-agent.jar which is the recommended approach.
+            Having both can cause double-attach conflicts.
+        -->
     </dependencies>
 
     <build>
