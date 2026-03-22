@@ -42,7 +42,7 @@ echo "  Step 1: Create Azure Resources"
 echo "============================================"
 
 # Create Resource Group
-echo "[1/3] Creating Resource Group: $RESOURCE_GROUP in $LOCATION..."
+echo "[1/4] Creating Resource Group: $RESOURCE_GROUP in $LOCATION..."
 az group create \
   --name "$RESOURCE_GROUP" \
   --location "$LOCATION" \
@@ -50,7 +50,7 @@ az group create \
 echo "  ✅ Resource Group created."
 
 # Create Azure Container Registry
-echo "[2/3] Creating Azure Container Registry: $ACR_NAME..."
+echo "[2/4] Creating Azure Container Registry: $ACR_NAME..."
 az acr create \
   --resource-group "$RESOURCE_GROUP" \
   --name "$ACR_NAME" \
@@ -63,19 +63,42 @@ echo "  ✅ ACR created."
 ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer --output tsv)
 echo "  ACR Login Server: $ACR_LOGIN_SERVER"
 
+# Create Azure Storage Account (for OrderItemsReserver blob uploads)
+echo "[3/4] Creating Storage Account: $STORAGE_ACCOUNT_NAME..."
+az storage account create \
+  --name "$STORAGE_ACCOUNT_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --location "$LOCATION" \
+  --sku Standard_LRS \
+  --kind StorageV2 \
+  --output none
+echo "  ✅ Storage Account created."
+
+# Create Blob Container
+echo "  Creating blob container: $BLOB_CONTAINER_NAME..."
+STORAGE_CONNECTION_STRING=$(az storage account show-connection-string \
+  --name "$STORAGE_ACCOUNT_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --query connectionString -o tsv)
+az storage container create \
+  --name "$BLOB_CONTAINER_NAME" \
+  --connection-string "$STORAGE_CONNECTION_STRING" \
+  --output none
+echo "  ✅ Blob container '$BLOB_CONTAINER_NAME' created."
+
 echo ""
 echo "============================================"
 echo "  Step 2: Build & Push Docker Images to ACR"
 echo "============================================"
 
 # Log in to ACR
-echo "[3/3] Logging in to ACR..."
+echo "[4/4] Logging in to ACR..."
 az acr login --name "$ACR_NAME"
 
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Build and push each service using `az acr build` (cloud-side build, no local Docker needed)
-SERVICES=("petstoreapp" "petstorepetservice" "petstoreproductservice" "petstoreorderservice")
+SERVICES=("petstoreapp" "petstorepetservice" "petstoreproductservice" "petstoreorderservice" "petstoreorderitemsreserver")
 
 for SERVICE in "${SERVICES[@]}"; do
   echo ""
@@ -94,8 +117,9 @@ echo "  ✅ Steps 1 & 2 Complete!"
 echo "============================================"
 echo ""
 echo "Resources created:"
-echo "  - Resource Group: $RESOURCE_GROUP"
-echo "  - ACR:            $ACR_LOGIN_SERVER"
-echo "  - Images pushed:  ${SERVICES[*]} (tag: $IMAGE_TAG)"
+echo "  - Resource Group:    $RESOURCE_GROUP"
+echo "  - ACR:               $ACR_LOGIN_SERVER"
+echo "  - Storage Account:   $STORAGE_ACCOUNT_NAME (container: $BLOB_CONTAINER_NAME)"
+echo "  - Images pushed:     ${SERVICES[*]} (tag: $IMAGE_TAG)"
 echo ""
 echo "Next: Run 02-deploy-container-apps.sh"

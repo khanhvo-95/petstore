@@ -32,45 +32,7 @@ public class ProductManagementService {
     private final ContainerEnvironment containerEnvironment;
     private final ProductServiceClient productServiceClient;
 
-    /**
-     * Step 9: Intentional error for Application Insights testing.
-     * The exception is explicitly tracked via trackException() before throwing,
-     * so it appears in App Insights Failures tab and exceptions table.
-     *
-     * To restore original behavior, replace this method body with getProductsByCategoryOriginal().
-     */
     public Collection<Product> getProductsByCategory(String category, List<Tag> tags) {
-        MDC.put(OPERATION, "getProducts");
-        MDC.put(CATEGORY, category);
-
-        try {
-            // Build telemetry context so the exception carries user/session info
-            Map<String, String> properties = new HashMap<>(this.sessionUser.getCustomEventProperties());
-            properties.put("username", this.sessionUser.getName());
-            properties.put("session_Id", this.sessionUser.getSessionId());
-            properties.put("category", category);
-
-            // Step 9: throw new Exception("Cannot move further")
-            RuntimeException error = new RuntimeException("Cannot move further");
-
-            // Explicitly track the exception in Application Insights
-            log.error("Intentional error in getProductsByCategory for category: {}", category, error);
-            this.sessionUser.getTelemetryClient().trackException(error, properties, null);
-            this.sessionUser.getTelemetryClient().flush();
-
-            throw error;
-        } finally {
-            MDC.remove(OPERATION);
-            MDC.remove(CATEGORY);
-        }
-    }
-
-    /**
-     * Original method — restore by renaming back to getProductsByCategory
-     * and removing the intentional-error version above.
-     */
-    @SuppressWarnings("unused")
-    private Collection<Product> getProductsByCategoryOriginal(String category, List<Tag> tags) {
         List<Product> products;
 
         MDC.put(OPERATION, "getProducts");

@@ -1,5 +1,5 @@
 {
-  "connectionString": "InstrumentationKey=aa74e670-d8b5-4722-affb-40bab90974f2;IngestionEndpoint=https://southeastasia-1.in.applicationinsights.azure.com/;LiveEndpoint=https://southeastasia.livediagnostics.monitor.azure.com/;ApplicationId=fd7bc746-922e-441b-9ab0-5d0d06bb0579",
+  "connectionString": "${APPLICATIONINSIGHTS_CONNECTION_STRING}",
   "role": {
     "name": "petstoreapp"
   },

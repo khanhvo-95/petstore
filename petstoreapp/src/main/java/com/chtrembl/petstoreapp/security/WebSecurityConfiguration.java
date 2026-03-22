@@ -24,8 +24,8 @@ public class WebSecurityConfiguration {
     @Value("${petstore.security.enabled:false}")
     private boolean securityEnabled;
 
-    @Value("${azure.entra.external-id.tenant-domain:petshopdemo}")
-    private String tenantDomain;
+    @Value("${AZURE_TENANT_ID:}")
+    private String tenantId;
 
     @Value("${AZURE_CLIENT_ID:}")
     private String clientId;
@@ -41,15 +41,15 @@ public class WebSecurityConfiguration {
             return http.build();
         }
 
-        // Check if External ID is properly configured
-        boolean externalIdConfigured = tenantDomain != null && !tenantDomain.isEmpty() &&
+        // Check if Entra ID is properly configured
+        boolean entraConfigured = tenantId != null && !tenantId.isEmpty() &&
                 clientId != null && !clientId.isEmpty();
 
-        if (!externalIdConfigured) {
+        if (!entraConfigured) {
             http.csrf(AbstractHttpConfigurer::disable)
                     .authorizeHttpRequests(authz -> authz.anyRequest().permitAll());
             containerEnvironment.setSecurityEnabled(false);
-            log.warn("Security ENABLED but External ID not configured - fallback to DISABLED");
+            log.warn("Security ENABLED but Entra ID not configured - fallback to DISABLED");
             return http.build();
         }
 
@@ -77,13 +77,13 @@ public class WebSecurityConfiguration {
                 );
 
         containerEnvironment.setSecurityEnabled(true);
-        log.info("Security is ENABLED using Microsoft Entra External ID OAuth2");
+        log.info("Security is ENABLED using Microsoft Entra ID OAuth2");
 
         return http.build();
     }
 
     /**
-     * Custom logout success handler that redirects to External ID logout URL
+     * Custom logout success handler that redirects to Entra ID logout URL
      */
     private void handleLogoutSuccess(HttpServletRequest request,
                                      HttpServletResponse response,
@@ -93,13 +93,13 @@ public class WebSecurityConfiguration {
         String baseUrl = request.getScheme() + "://" + request.getServerName() +
                 ":" + request.getServerPort();
 
-        if (tenantDomain != null && !tenantDomain.isEmpty()) {
-            String logoutUrl = "https://" + tenantDomain + ".ciamlogin.com/" +
-                    tenantDomain + ".onmicrosoft.com/oauth2/v2.0/logout" +
+        if (tenantId != null && !tenantId.isEmpty()) {
+            String logoutUrl = "https://login.microsoftonline.com/" + tenantId +
+                    "/oauth2/v2.0/logout" +
                     "?post_logout_redirect_uri=" + baseUrl;
             response.sendRedirect(logoutUrl);
         } else {
-            log.warn("AZURE_TENANT_DOMAIN not configured, using default logout");
+            log.warn("AZURE_TENANT_ID not configured, using default logout");
             response.sendRedirect("/");
         }
     }

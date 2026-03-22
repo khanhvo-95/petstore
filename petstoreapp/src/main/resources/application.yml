@@ -6,11 +6,14 @@ petstore:
       url: ${PETSTOREPRODUCTSERVICE_URL:http://localhost:8082}
     order:
       url: ${PETSTOREORDERSERVICE_URL:http://localhost:8083}
+    orderitemsreserver:
+      url: ${PETSTOREORDERITEMSRESERVER_URL:http://localhost:8085}
   security:
     # Enable in Module 10
     enabled: ${PETSTORE_SECURITY_ENABLED:false}
 server:
   port: ${PETSTOREAPP_SERVER_PORT:8080}
+  forward-headers-strategy: FRAMEWORK
 management:
   endpoints:
     web:
@@ -56,6 +59,9 @@ spring:
           order-service:
             connect-timeout: 10000
             read-timeout: 30000
+          orderitemsreserver-service:
+            connect-timeout: 10000
+            read-timeout: 30000
   security:
     # Used in Module 10
     oauth2:
@@ -67,14 +73,14 @@ spring:
             scope:
               - openid
               - profile
-              - email
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+              - offline_access
+            redirect-uri: ${OAUTH_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}
             authorization-grant-type: authorization_code
         provider:
           azure:
-            authorization-uri: https://${AZURE_TENANT_DOMAIN}.ciamlogin.com/${AZURE_TENANT_DOMAIN}.onmicrosoft.com/oauth2/v2.0/authorize
-            token-uri: https://${AZURE_TENANT_DOMAIN}.ciamlogin.com/${AZURE_TENANT_DOMAIN}.onmicrosoft.com/oauth2/v2.0/token
-            jwk-set-uri: https://${AZURE_TENANT_DOMAIN}.ciamlogin.com/${AZURE_TENANT_DOMAIN}.onmicrosoft.com/discovery/v2.0/keys
+            authorization-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/authorize
+            token-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token
+            jwk-set-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/v2.0/keys
             user-name-attribute: sub
 logging:
   level:

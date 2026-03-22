@@ -1,15 +1,13 @@
 {
   "connectionString": "${APPLICATIONINSIGHTS_CONNECTION_STRING}",
   "role": {
-    "name": "petstorepetservice"
+    "name": "petstoreorderitemsreserver"
   },
   "sampling": {
     "percentage": 100
   },
-  "jmxMetrics": [
-  ],
-  "customDimensions": {
-  },
+  "jmxMetrics": [],
+  "customDimensions": {},
   "instrumentation": {
     "logging": {
       "level": "INFO"

@@ -24,7 +24,7 @@ echo "Target Configuration:"
 echo "  Resource Group:       $RESOURCE_GROUP"
 echo "  Min/Max Replicas:     $MIN_REPLICAS / $MAX_REPLICAS"
 echo "  Concurrent Requests:  $CONCURRENT_REQUESTS"
-echo "  Apps:                 $APP_NAME, $PET_SERVICE_NAME, $PRODUCT_SERVICE_NAME, $ORDER_SERVICE_NAME"
+echo "  Apps:                 $APP_NAME, $PET_SERVICE_NAME, $PRODUCT_SERVICE_NAME, $ORDER_SERVICE_NAME, $ORDER_ITEMS_RESERVER_NAME"
 echo ""
 read -p "Proceed? (y/n): " CONFIRM
 if [[ "$CONFIRM" != "y" ]]; then
@@ -38,7 +38,7 @@ echo "============================================"
 echo "  Step 4: Configure Autoscaling"
 echo "============================================"
 
-SERVICES=("$APP_NAME" "$PET_SERVICE_NAME" "$PRODUCT_SERVICE_NAME" "$ORDER_SERVICE_NAME")
+SERVICES=("$APP_NAME" "$PET_SERVICE_NAME" "$PRODUCT_SERVICE_NAME" "$ORDER_SERVICE_NAME" "$ORDER_ITEMS_RESERVER_NAME")
 
 for SERVICE in "${SERVICES[@]}"; do
   echo ""
