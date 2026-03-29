@@ -59,3 +59,12 @@ A microservices-based PetStore application deployed on **Azure Container Apps** 
 - ACR: `vodemopetstoreappcontainer.azurecr.io`
 - Use Terraform for infrastructure changes when possible
 - Container Apps use HTTP ingress with port 8080 (except Azure Function on 80)
+
+## PR & Code Review Workflow
+- **Branch strategy:** Feature branches off `master`, PRs required for merge
+- **PR naming:** Use format `feat:`, `fix:`, `chore:`, `refactor:` prefixes
+- **Review process:** Use GitHub MCP to create PRs, request reviews, and merge
+- **CI/CD:** GitHub Actions runs build + deploy on push to `master` (see `.github/workflows/build-deploy.yml`)
+- **Merge method:** Prefer squash merge to keep `master` history clean
+- When creating a PR, always include a summary of changes and link related issues
+- Use `code_security` toolset to check for vulnerabilities before merging

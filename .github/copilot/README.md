@@ -11,18 +11,18 @@ but actually create PRs, deploy to Azure, query logs, build Java projects, etc.
 |---|--------|----------------|----------------|
 | 1 | **Azure MCP** | Global (`mcp.json`) | Query Azure resources, logs, deploy |
 | 2 | **AppMod MCP** | Global (`mcp.json`) | Build Java, create Dockerfiles, upgrade deps |
-| 3 | **GitHub MCP** | Project (`.github/copilot/mcp.json`) | PRs, issues, branches, Actions |
+| 3 | **GitHub MCP** | Project (`.github/copilot/mcp.json`) | PRs (create/review/merge), issues, branches, Actions, code security |
 
 ```
 Global config (machine-specific, NOT committed):
   %LOCALAPPDATA%\github-copilot\intellij\mcp.json
   └── Azure MCP Server IntelliJ  (paths to IntelliJ plugin)
   └── appmod-mcp-server           (paths to IntelliJ plugin)
-  └── github-mcp-server           (uses env var for token)
 
 Project config (shared with team, committed to Git):
   .github/copilot/mcp.json
-  └── github-mcp-server           (same npx command for everyone)
+  └── github-mcp-server           (Docker-based, official GitHub MCP image)
+      Toolsets: repos, issues, pull_requests, code_security, actions, context, users
 ```
 
 ---
@@ -104,15 +104,33 @@ Project config (shared with team, committed to Git):
 
 ---
 
-## 3️⃣ GitHub MCP — PRs, Issues, Branches, Actions
+## 3️⃣ GitHub MCP — PRs, Issues, Branches, Actions, Code Review
+
+### Enabled Toolsets
+The GitHub MCP server is configured with these toolsets:
+`repos`, `issues`, `pull_requests`, `code_security`, `actions`, `context`, `users`
 
 ### What you can ask:
 
-#### Pull Requests
+#### Pull Requests — Create, Review & Merge
 ```
-"Create a PR from my current branch to main"
+"Create a PR from my current branch to master"
 "List open pull requests"
 "Show me the details of PR #5"
+"Review PR #5 and approve it"
+"Add a review comment on PR #5 requesting changes"
+"Merge PR #5 using squash merge"
+"Update PR #5 branch with latest from master"
+"Get the files changed in PR #5"
+"Get the review status of PR #5"
+```
+
+#### Code Review Workflow
+```
+"Review the changes in PR #5 and leave comments"
+"Approve PR #5 with a comment"
+"Request changes on PR #5 with feedback"
+"Check the CI status of PR #5 before merging"
 ```
 
 #### Issues
@@ -128,16 +146,35 @@ Project config (shared with team, committed to Git):
 "List all branches"
 ```
 
+#### GitHub Actions & CI/CD
+```
+"List workflow runs for the build-deploy workflow"
+"Show me the latest failed workflow run"
+"Get the logs for job #123"
+"Re-run the failed workflow"
+```
+
+#### Code Security
+```
+"List code scanning alerts"
+"Show me the details of security alert #1"
+"Check for Dependabot alerts"
+```
+
 #### Repository
 ```
 "Show me the latest commits"
 "Search for files containing 'TelemetryClient'"
 ```
 
-### Real Example — Create PR:
+### Real Example — Full PR Workflow:
 > **You:** "Create a PR titled 'Add App Insights to all services' with description of changes"
 >
 > **Copilot** (via GitHub MCP) → calls GitHub API → creates PR → returns URL
+>
+> **You:** "Review and approve PR #5, then merge it with squash"
+>
+> **Copilot** (via GitHub MCP) → reviews PR → approves → squash merges → confirms
 
 ---
 
@@ -149,6 +186,9 @@ Project config (shared with team, committed to Git):
 2. "Create a branch fix/app-insights"     → GitHub MCP creates branch
 3. "Deploy to Azure Container Apps"       → Azure MCP deploys
 4. "Create a PR for this fix"             → GitHub MCP creates PR
+5. "Check CI status of the PR"            → GitHub MCP checks Actions
+6. "Review and approve the PR"            → GitHub MCP reviews
+7. "Squash merge the PR"                  → GitHub MCP merges
 ```
 
 ### Diagnose & fix a production issue:
@@ -189,19 +229,30 @@ with every chat message. It tells Copilot:
 ## 🔑 Setup for New Team Members
 
 ```powershell
-# 1. Create a GitHub PAT at https://github.com/settings/tokens?type=beta
-#    Permissions: Contents, PRs, Issues, Actions (Read+Write)
+# 1. Install Docker Desktop (required for GitHub MCP server)
+#    https://www.docker.com/products/docker-desktop/
 
-# 2. Set it as a Windows environment variable
+# 2. Create a GitHub PAT at https://github.com/settings/tokens?type=beta
+#    Permissions needed:
+#      - Contents (Read+Write)
+#      - Pull requests (Read+Write)
+#      - Issues (Read+Write)
+#      - Actions (Read)
+#      - Code scanning alerts (Read) — for code_security toolset
+#      - Security events (Read) — for Dependabot alerts
+
+# 3. Set it as a Windows environment variable
 [System.Environment]::SetEnvironmentVariable(
   "GITHUB_PERSONAL_ACCESS_TOKEN", "github_pat_xxx", "User"
 )
 
-# 3. Restart IntelliJ — all 3 MCP servers connect automatically
+# 4. Restart IntelliJ — MCP servers connect automatically
+#    Docker will pull ghcr.io/github/github-mcp-server on first use
 
-# 4. Verify in Copilot Chat:
+# 5. Verify in Copilot Chat:
 #    "List my Azure resource groups"        → Tests Azure MCP
-#    "List open issues on this repo"        → Tests GitHub MCP
+#    "List open PRs on this repo"           → Tests GitHub MCP
+#    "Review PR #1"                         → Tests PR review
 #    "Build petstoreapp"                    → Tests AppMod MCP
 ```
 
