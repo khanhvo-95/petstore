@@ -3,17 +3,21 @@
   "mcp": {
     "github": {
       "type": "local",
-      "command": [
-        "docker", "run", "-i", "--rm",
-        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
-        "-e", "GITHUB_TOOLSETS",
-        "ghcr.io/github/github-mcp-server"
-      ],
+      "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
       "environment": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}",
         "GITHUB_TOOLSETS": "repos,issues,pull_requests,code_security,actions,context,users"
       },
       "enabled": true
+    }
+  },
+  "permission": {
+    "skill": {
+      "pr-create": "allow",
+      "pr-review": "allow",
+      "pr-merge": "allow",
+      "github-issues": "allow",
+      "ci-monitor": "allow"
     }
   }
 }

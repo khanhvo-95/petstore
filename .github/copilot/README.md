@@ -21,7 +21,7 @@ Global config (machine-specific, NOT committed):
 
 Project config (shared with team, committed to Git):
   .github/copilot/mcp.json
-  └── github-mcp-server           (Docker-based, official GitHub MCP image)
+  └── github-mcp-server           (npx-based, uses @modelcontextprotocol/server-github)
       Toolsets: repos, issues, pull_requests, code_security, actions, context, users
 ```
 
@@ -229,25 +229,18 @@ with every chat message. It tells Copilot:
 ## 🔑 Setup for New Team Members
 
 ```powershell
-# 1. Install Docker Desktop (required for GitHub MCP server)
-#    https://www.docker.com/products/docker-desktop/
+# 1. Ensure Node.js (v18+) and npm are installed (required for npx)
+#    https://nodejs.org/
 
-# 2. Create a GitHub PAT at https://github.com/settings/tokens?type=beta
-#    Permissions needed:
-#      - Contents (Read+Write)
-#      - Pull requests (Read+Write)
-#      - Issues (Read+Write)
-#      - Actions (Read)
-#      - Code scanning alerts (Read) — for code_security toolset
-#      - Security events (Read) — for Dependabot alerts
+# 2. Create a GitHub classic PAT at https://github.com/settings/tokens
+#    Select scopes: repo, read:org, gist, workflow
 
 # 3. Set it as a Windows environment variable
 [System.Environment]::SetEnvironmentVariable(
-  "GITHUB_PERSONAL_ACCESS_TOKEN", "github_pat_xxx", "User"
+  "GITHUB_PERSONAL_ACCESS_TOKEN", "ghp_xxx", "User"
 )
 
-# 4. Restart IntelliJ — MCP servers connect automatically
-#    Docker will pull ghcr.io/github/github-mcp-server on first use
+# 4. Restart IntelliJ / OpenCode — MCP servers connect automatically
 
 # 5. Verify in Copilot Chat:
 #    "List my Azure resource groups"        → Tests Azure MCP
