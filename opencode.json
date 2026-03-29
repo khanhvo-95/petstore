@@ -10,5 +10,14 @@
       },
       "enabled": true
     }
+  },
+  "permission": {
+    "skill": {
+      "pr-create": "allow",
+      "pr-review": "allow",
+      "pr-merge": "allow",
+      "github-issues": "allow",
+      "ci-monitor": "allow"
+    }
   }
 }
