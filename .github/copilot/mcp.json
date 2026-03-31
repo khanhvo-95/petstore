@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "github-mcp-server": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}",
+        "GITHUB_TOOLSETS": "repos,issues,pull_requests,code_security,actions,context,users"
+      }
+    }
+  }
+}
