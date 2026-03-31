@@ -8,6 +8,7 @@
         <option value="$PROJECT_DIR$/petstorepetservice/pom.xml" />
         <option value="$PROJECT_DIR$/petstoreorderservice/pom.xml" />
         <option value="$PROJECT_DIR$/petstoreproductservice/pom.xml" />
+        <option value="$PROJECT_DIR$/petstoreorderitemsreserver/pom.xml" />
       </list>
     </option>
   </component>
