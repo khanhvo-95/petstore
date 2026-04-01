@@ -26,17 +26,8 @@ echo "  Resource Group:  $RESOURCE_GROUP"
 echo "  Location:        $LOCATION"
 echo "  ACR Name:        $ACR_NAME"
 echo "  Environment:     $ENVIRONMENT_NAME"
-echo "  PostgreSQL:      $PG_SERVER_NAME ($PG_DATABASE_NAME)"
 echo "  Apps:            $APP_NAME, $PET_SERVICE_NAME, $PRODUCT_SERVICE_NAME, $ORDER_SERVICE_NAME, $ORDER_ITEMS_RESERVER_NAME"
 echo ""
-
-# Validate PostgreSQL password is set (needed for Pet & Product service env vars)
-if [ -z "$PG_ADMIN_PASSWORD" ]; then
-  echo "ERROR: PG_ADMIN_PASSWORD must be set for Pet & Product service database access."
-  echo "  export PG_ADMIN_PASSWORD='YourStr0ngP@ssword!'"
-  exit 1
-fi
-
 read -p "Proceed? (y/n): " CONFIRM
 if [[ "$CONFIRM" != "y" ]]; then
   echo "Aborted."
@@ -81,11 +72,7 @@ az containerapp create \
   --min-replicas "$MIN_REPLICAS" \
   --max-replicas "$MAX_REPLICAS" \
   --revision-suffix "$IMAGE_TAG" \
-  --env-vars \
-    "PETSTOREPETSERVICE_DB_URL=$PG_JDBC_URL" \
-    "PETSTOREPETSERVICE_DB_USERNAME=$PG_ADMIN_USER" \
-    "PETSTOREPETSERVICE_DB_PASSWORD=$PG_ADMIN_PASSWORD" \
-    "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
+  --env-vars "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
   -o none
 echo "  ✅ PetService deployed."
 
@@ -107,11 +94,7 @@ az containerapp create \
   --min-replicas "$MIN_REPLICAS" \
   --max-replicas "$MAX_REPLICAS" \
   --revision-suffix "$IMAGE_TAG" \
-  --env-vars \
-    "PETSTOREPRODUCTSERVICE_DB_URL=$PG_JDBC_URL" \
-    "PETSTOREPRODUCTSERVICE_DB_USERNAME=$PG_ADMIN_USER" \
-    "PETSTOREPRODUCTSERVICE_DB_PASSWORD=$PG_ADMIN_PASSWORD" \
-    "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
+  --env-vars "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONNECTION_STRING" \
   -o none
 echo "  ✅ ProductService deployed."
 

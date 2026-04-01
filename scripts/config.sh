@@ -6,21 +6,6 @@
 # propagate automatically to 01-setup, 02-deploy, 03-autoscale, 04-v2, 05-traffic.
 ###############################################################################
 
-# ===================== AZURE SUBSCRIPTION ====================================
-# Force the correct subscription in every script (bash may use a different
-# Azure CLI profile than PowerShell).
-AZURE_SUBSCRIPTION_ID="5526649a-149c-4b4d-83ca-40862790b533"
-az account set --subscription "$AZURE_SUBSCRIPTION_ID" 2>/dev/null || true
-
-# ===================== REGISTER RESOURCE PROVIDERS ===========================
-# New subscriptions may not have these registered by default.
-echo "Registering required Azure resource providers (if not already)..."
-az provider register --namespace Microsoft.ContainerRegistry --wait 2>/dev/null || true
-az provider register --namespace Microsoft.App --wait 2>/dev/null || true
-az provider register --namespace Microsoft.OperationalInsights --wait 2>/dev/null || true
-az provider register --namespace Microsoft.DBforPostgreSQL --wait 2>/dev/null || true
-az provider register --namespace Microsoft.Storage --wait 2>/dev/null || true
-
 # ===================== AZURE RESOURCE NAMES ==================================
 RESOURCE_GROUP="demo-rg"
 LOCATION="southeastasia"
@@ -52,23 +37,20 @@ AI_CONNECTION_STRING="InstrumentationKey=aa74e670-d8b5-4722-affb-40bab90974f2;In
 # ===================== BLOB STORAGE (OrderItemsReserver) =====================
 # Storage account name for the OrderItemsReserver to upload order JSON files.
 # The script will create the storage account and retrieve its connection string.
-STORAGE_ACCOUNT_NAME="vopetorderstorage2"      # Must be globally unique, lowercase, 3-24 chars
+STORAGE_ACCOUNT_NAME="vopetorderstorage"       # Must be globally unique, lowercase, 3-24 chars
 BLOB_CONTAINER_NAME="orderitemsreserver"
 
 # ===================== ENTRA ID (Authentication) =============================
 # Enable login/logout via Microsoft Entra ID OAuth2
 PETSTORE_SECURITY_ENABLED="true"
-AZURE_TENANT_ID="${AZURE_TENANT_ID:-c1645eed-4fef-44e4-9391-2505b19ca6cf}"
-AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-4a925a23-f5b3-460e-b541-1c935d08ee59}"
+AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"            # Set via: export AZURE_TENANT_ID="your-tenant-id"
+AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"            # Set via: export AZURE_CLIENT_ID="your-client-id"
 AZURE_CLIENT_SECRET="${AZURE_CLIENT_SECRET:-}"    # Set via: export AZURE_CLIENT_SECRET="your-client-secret"
 
-# ===================== POSTGRESQL (Pet & Product Services) ===================
-PG_SERVER_NAME="${ACR_NAME}-pgserver"         # Derived from ACR_NAME for uniqueness
-PG_ADMIN_USER="petstoreAdmin"
-PG_ADMIN_PASSWORD="${PG_ADMIN_PASSWORD:-}"    # Set via: export PG_ADMIN_PASSWORD='YourStr0ngP@ssword1!'
-PG_DATABASE_NAME="petstore"
-PG_HOST="${PG_SERVER_NAME}.postgres.database.azure.com"
-PG_JDBC_URL="jdbc:postgresql://${PG_HOST}:5432/${PG_DATABASE_NAME}?sslmode=require"
+# ===================== COSMOS DB (Order Service) =============================
+COSMOS_ACCOUNT_NAME="petstore-cosmos"
+COSMOS_DATABASE_NAME="petstore"
+COSMOS_CONTAINER_NAME="orders"
 
 # ===================== REVISION / CANARY =====================================
 OLD_TAG="v1"

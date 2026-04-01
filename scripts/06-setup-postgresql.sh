@@ -5,25 +5,24 @@
 # =======================================================
 # Prerequisites:
 #   - Azure CLI installed and logged in (az login)
-#   - Bash shell (Git Bash on Windows)
+#   - Bash shell
 #
 # Usage:
 #   chmod +x scripts/06-setup-postgresql.sh
-#   export PG_ADMIN_PASSWORD='YourStr0ngP@ssword!'
 #   ./scripts/06-setup-postgresql.sh
 # =======================================================
 
 set -euo pipefail
 
 # -------------------------------------------------------
-# Source shared config (RESOURCE_GROUP, LOCATION, etc.)
-# -------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/config.sh"
-
-# -------------------------------------------------------
 # Configuration - override via environment variables
 # -------------------------------------------------------
+RESOURCE_GROUP="${RESOURCE_GROUP:-petstore-rg}"
+LOCATION="${LOCATION:-eastus}"
+PG_SERVER_NAME="${PG_SERVER_NAME:-petstore-pgserver}"
+PG_ADMIN_USER="${PG_ADMIN_USER:-petstoreAdmin}"
+PG_ADMIN_PASSWORD="${PG_ADMIN_PASSWORD:-}"    # must be set externally
+PG_DATABASE_NAME="${PG_DATABASE_NAME:-petstore}"
 PG_SKU="${PG_SKU:-Standard_B1ms}"
 PG_TIER="${PG_TIER:-Burstable}"
 PG_VERSION="${PG_VERSION:-16}"
@@ -107,10 +106,9 @@ echo "  Firewall rule added for IP: $MY_IP"
 
 # -------------------------------------------------------
 # 5. Run DDL and DML scripts
-#    Uses 'az postgres flexible-server execute' so psql
-#    is NOT required on the local machine.
 # -------------------------------------------------------
 PG_HOST="${PG_SERVER_NAME}.postgres.database.azure.com"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "[5/6] Running DDL and DML scripts..."
 
@@ -121,14 +119,13 @@ for sql_file in \
   "$SCRIPT_DIR/sql/04-dml-productservice.sql"; do
 
   echo "  Executing: $(basename "$sql_file")"
-  az postgres flexible-server execute \
-    --name "$PG_SERVER_NAME" \
-    --resource-group "$RESOURCE_GROUP" \
-    --admin-user "$PG_ADMIN_USER" \
-    --admin-password "$PG_ADMIN_PASSWORD" \
-    --database-name "$PG_DATABASE_NAME" \
-    --file-path "$sql_file" \
-    --output none
+  PGPASSWORD="$PG_ADMIN_PASSWORD" psql \
+    -h "$PG_HOST" \
+    -U "$PG_ADMIN_USER" \
+    -d "$PG_DATABASE_NAME" \
+    -f "$sql_file" \
+    --set=sslmode=require \
+    -q
 done
 
 echo "  All SQL scripts executed."
@@ -136,7 +133,7 @@ echo "  All SQL scripts executed."
 # -------------------------------------------------------
 # 6. Print connection info
 # -------------------------------------------------------
-JDBC_URL="$PG_JDBC_URL"
+JDBC_URL="jdbc:postgresql://${PG_HOST}:5432/${PG_DATABASE_NAME}?sslmode=require"
 
 echo ""
 echo "============================================="

@@ -1,8 +1,20 @@
 spring:
   application:
     name: petstoreorderservice
+  cloud:
+    azure:
+      cosmos:
+        endpoint: ${AZURE_COSMOS_ENDPOINT:https://localhost:8081}
+        key: ${AZURE_COSMOS_KEY:}
+        database: ${AZURE_COSMOS_DATABASE:petstore}
+        populate-query-metrics: false
+
 server:
   port: ${PETSTOREORDERSERVICE_SERVER_PORT:8080}
+
+azure:
+  cosmos:
+    database: ${AZURE_COSMOS_DATABASE:petstore}
 
 petstore:
   service:

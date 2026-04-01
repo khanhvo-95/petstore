@@ -48,6 +48,9 @@ services:
       - .env
     environment:
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}
+      - AZURE_COSMOS_ENDPOINT=${AZURE_COSMOS_ENDPOINT}
+      - AZURE_COSMOS_KEY=${AZURE_COSMOS_KEY}
+      - AZURE_COSMOS_DATABASE=${AZURE_COSMOS_DATABASE:-petstore}
 
   petstoreorderitemsreserver:
     build:
