@@ -3,8 +3,9 @@
 ###############################################################################
 
 variable "subscription_id" {
-  description = "Azure subscription ID"
+  description = "Azure subscription ID (used for import blocks)"
   type        = string
+  default     = ""
 }
 
 variable "resource_group_name" {
@@ -73,5 +74,49 @@ variable "tags" {
     environment = "dev"
     managed_by  = "terraform"
   }
+}
+
+# ─── Key Vault / Database credentials ───────────────────────────────────────
+
+variable "pgsql_server_name" {
+  description = "PostgreSQL Flexible Server name (without .postgres.database.azure.com)"
+  type        = string
+}
+
+variable "pgsql_admin_user" {
+  description = "PostgreSQL admin username"
+  type        = string
+}
+
+variable "pgsql_password_rotation_days" {
+  description = "Number of days before the PostgreSQL password is auto-rotated"
+  type        = number
+  default     = 90
+}
+
+variable "pgsql_database_name" {
+  description = "PostgreSQL database name"
+  type        = string
+  default     = "petstore"
+}
+
+variable "cosmos_account_name" {
+  description = "Azure Cosmos DB account name (Terraform reads endpoint + key from Azure automatically)"
+  type        = string
+}
+
+variable "cosmos_database_name" {
+  description = "Azure Cosmos DB database name"
+  type        = string
+  default     = "petstore"
+}
+
+# ─── Entra ID (OAuth2 authentication for PetStore App) ──────────────────────
+
+
+variable "entra_security_enabled" {
+  description = "Enable OAuth2 sign-in via Microsoft Entra ID"
+  type        = bool
+  default     = true
 }
 
