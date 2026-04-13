@@ -120,3 +120,17 @@ variable "entra_security_enabled" {
   default     = true
 }
 
+# ─── Service Bus (Order Messaging) ──────────────────────────────────────────
+
+variable "servicebus_queue_name" {
+  description = "Service Bus queue name for order item messages"
+  type        = string
+  default     = "order-items-queue"
+}
+
+variable "manager_email" {
+  description = "Manager email address for DLQ failure notifications"
+  type        = string
+  default     = "manager@petstore.com"
+}
+

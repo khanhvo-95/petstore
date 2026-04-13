@@ -10,6 +10,9 @@ services:
       - APPLICATIONINSIGHTS_ENABLED=true
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}
       - PETSTOREORDERITEMSRESERVER_URL=http://petstoreorderitemsreserver:80
+      # Azure Service Bus for messaging with OrderItemsReserver
+      - SERVICEBUS_CONNECTION_STRING=${SERVICEBUS_CONNECTION_STRING}
+      - SERVICEBUS_QUEUE_NAME=${SERVICEBUS_QUEUE_NAME:-order-items-queue}
       # Enables External ID login/logout flow locally. Set additional configs in .env:
       - PETSTORE_SECURITY_ENABLED=true
 
@@ -62,5 +65,9 @@ services:
     environment:
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}
       - AzureWebJobsStorage=
+      # Azure Service Bus trigger configuration
+      - SERVICEBUS_CONNECTION_STRING=${SERVICEBUS_CONNECTION_STRING}
+      - SERVICEBUS_QUEUE_NAME=${SERVICEBUS_QUEUE_NAME:-order-items-queue}
+      # Blob Storage for order JSON uploads
       - BLOB_STORAGE_CONNECTION_STRING=${BLOB_STORAGE_CONNECTION_STRING}
       - BLOB_STORAGE_CONTAINER_NAME=orderitemsreserver

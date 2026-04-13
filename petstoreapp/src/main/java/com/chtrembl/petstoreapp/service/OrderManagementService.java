@@ -1,6 +1,5 @@
 package com.chtrembl.petstoreapp.service;
 
-import com.chtrembl.petstoreapp.client.OrderItemsReserverClient;
 import com.chtrembl.petstoreapp.client.OrderServiceClient;
 import com.chtrembl.petstoreapp.exception.OrderServiceException;
 import com.chtrembl.petstoreapp.model.Order;
@@ -31,7 +30,7 @@ public class OrderManagementService {
 
     private final User sessionUser;
     private final OrderServiceClient orderServiceClient;
-    private final OrderItemsReserverClient orderItemsReserverClient;
+    private final ServiceBusSenderService serviceBusSenderService;
 
     public void updateOrder(long productId, int quantity, boolean completeOrder) {
         MDC.put(OPERATION, "updateOrder");
@@ -48,13 +47,12 @@ public class OrderManagementService {
             Order updatedOrder = buildOrderUpdate(productId, quantity, completeOrder);
             String orderJSON = serializeOrder(updatedOrder);
 
-            // When completing an order, first reserve items via OrderItemsReserver function
-            if (completeOrder) {
-                reserveOrderItems();
-            }
-
             Order resultOrder = orderServiceClient.createOrUpdateOrder(orderJSON);
             log.info("Successfully updated order: {}", resultOrder);
+
+            // After every cart update, send the current order state to Service Bus
+            // so OrderItemsReserver can upload it to Blob Storage
+            sendOrderToServiceBus();
 
         } catch (FeignException fe) {
             log.error("Unable to update order via Feign client: HTTP {} - {}", fe.status(), fe.getMessage(), fe);
@@ -70,34 +68,38 @@ public class OrderManagementService {
     }
 
     /**
-     * Calls the OrderItemsReserver Azure Function to reserve order items
-     * and upload the order as JSON to Blob Storage.
+     * Sends the current order state to Azure Service Bus after every cart update.
+     * The OrderItemsReserver Azure Function (Service Bus Trigger) will pick up the message
+     * and upload the order as a JSON file to Blob Storage.
+     *
+     * The session ID is used as the blob filename so each session's file is overwritten
+     * on every cart update within the same session.
+     *
      * This is a best-effort call — failures are logged but do not block the order flow.
      */
-    private void reserveOrderItems() {
+    private void sendOrderToServiceBus() {
         try {
-            // Retrieve the current order to get all products
+            // Retrieve the current order to get the full product list
             Order currentOrder = orderServiceClient.getOrder(this.sessionUser.getSessionId());
             if (currentOrder != null && currentOrder.getProducts() != null && !currentOrder.getProducts().isEmpty()) {
                 String currentOrderJSON = serializeOrder(currentOrder);
-                log.info("Calling OrderItemsReserver to reserve items for order: {}", currentOrder.getId());
+                log.info("Sending order to Service Bus for session: {}", this.sessionUser.getSessionId());
 
-                String reservationResult = orderItemsReserverClient.reserveOrderItems(currentOrderJSON);
-                log.info("OrderItemsReserver response for order {}: {}", currentOrder.getId(), reservationResult);
+                serviceBusSenderService.sendOrderMessage(this.sessionUser.getSessionId(), currentOrderJSON);
 
                 this.sessionUser.getTelemetryClient()
                         .trackEvent(String.format(
-                                "PetStoreApp user %s successfully reserved order items via OrderItemsReserver",
+                                "PetStoreApp user %s sent order to Service Bus for processing",
                                 this.sessionUser.getName()), this.sessionUser.getCustomEventProperties(), null);
             } else {
-                log.info("No products in order to reserve for session: {}", this.sessionUser.getSessionId());
+                log.info("No products in order to send for session: {}", this.sessionUser.getSessionId());
             }
         } catch (FeignException fe) {
-            log.warn("OrderItemsReserver call failed (HTTP {}): {} - order will proceed anyway",
+            log.warn("Failed to retrieve order for Service Bus send (HTTP {}): {} - order update will proceed",
                     fe.status(), fe.getMessage());
             this.sessionUser.getTelemetryClient().trackException(fe);
         } catch (Exception e) {
-            log.warn("OrderItemsReserver call failed: {} - order will proceed anyway", e.getMessage());
+            log.warn("Failed to send order to Service Bus: {} - order update will proceed", e.getMessage());
             this.sessionUser.getTelemetryClient().trackException(e);
         }
     }

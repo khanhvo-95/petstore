@@ -23,7 +23,7 @@ A microservices-based PetStore application deployed on **Azure Container Apps** 
 - **Load Testing:** k6 (`/k6-load-tests`)
 
 ## Azure Resources
-- **Subscription:** `06fea321-1582-4bd7-bf0c-53376f2660a6` (Subscription 1)
+- **Subscription:** (set via `az account set --subscription <ID>`)
 - **Region:** Southeast Asia
 - **Resource Group:** `demo-rg`
 - **Container Registry:** `vodemopetstoreappcontainer.azurecr.io`

@@ -108,3 +108,34 @@ output "entra_app_display_name" {
   value = azuread_application.petstoreapp.display_name
 }
 
+# ─── Service Bus ────────────────────────────────────────────────────────────
+
+output "servicebus_namespace" {
+  description = "Service Bus namespace name"
+  value       = azurerm_servicebus_namespace.main.name
+}
+
+output "servicebus_queue_name" {
+  description = "Service Bus queue name for order messages"
+  value       = azurerm_servicebus_queue.order_items.name
+}
+
+output "servicebus_send_connection_string" {
+  description = "Service Bus connection string with Send-only permission (for PetStoreApp)"
+  value       = azurerm_servicebus_queue_authorization_rule.send.primary_connection_string
+  sensitive   = true
+}
+
+output "servicebus_listen_connection_string" {
+  description = "Service Bus connection string with Listen-only permission (for OrderItemsReserver)"
+  value       = azurerm_servicebus_queue_authorization_rule.listen.primary_connection_string
+  sensitive   = true
+}
+
+# ─── Logic App (DLQ Monitor) ───────────────────────────────────────────────
+
+output "logic_app_name" {
+  description = "Logic App name for DLQ monitoring"
+  value       = azurerm_logic_app_workflow.dlq_monitor.name
+}
+

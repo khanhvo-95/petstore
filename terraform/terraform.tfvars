@@ -11,7 +11,7 @@ resource_group_name  = "demo-rg"
 location             = "southeastasia"
 project_name         = "petstore"
 acr_name             = "vodemopetstoreappcontainer" # must be globally unique
-storage_account_name = "vopetstore2storage"          # must be globally unique
+storage_account_name = "vopetstore2storage"         # must be globally unique
 blob_container_name  = "orderitemsreserver"
 image_tag            = "latest"
 min_replicas         = 1
@@ -35,4 +35,10 @@ cosmos_database_name = "petstore"
 # Fully managed by Terraform: app registration, client secret, Key Vault.
 # No manual `az ad app` commands needed!
 entra_security_enabled = true
+
+# ─── Service Bus (Order Messaging) ──────────────────────────────────────────
+# Standard tier for DLQ support. PetStoreApp sends, OrderItemsReserver listens.
+# Connection strings are stored in Key Vault and injected into Container Apps.
+servicebus_queue_name = "order-items-queue"
+manager_email         = "manager@petstore.com"
 

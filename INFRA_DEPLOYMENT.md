@@ -54,7 +54,7 @@ autoscaling rules are **wired automatically** by Terraform.
 
 ```bash
 az login
-az account set --subscription "06fea321-1582-4bd7-bf0c-53376f2620a6"
+az account set --subscription "<YOUR_SUBSCRIPTION_ID>"
 az account show --output table   # verify correct subscription
 ```
 
@@ -63,7 +63,6 @@ az account show --output table   # verify correct subscription
 Open `petstore/terraform/terraform.tfvars` and set your values:
 
 ```hcl
-subscription_id      = "06fea321-1582-4bd7-bf0c-53376f2660a6"
 resource_group_name  = "petstore-rg"
 location             = "southeastasia"
 project_name         = "petstore"
@@ -76,6 +75,7 @@ max_replicas         = 5
 concurrent_requests  = "10"
 ```
 
+> ⚠️ No `subscription_id` in tfvars — Terraform uses your Azure CLI session automatically.
 > ⚠️ `acr_name` and `storage_account_name` **must be globally unique** across all of Azure.
 > If you get a "name already taken" error, change them.
 

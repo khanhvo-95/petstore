@@ -5,7 +5,10 @@
 #             Container Apps Environment,
 #             5 Container Apps (secrets pulled from Key Vault at runtime
 #             via User-Assigned Managed Identity — no plaintext secrets
-#             in Terraform state or environment variables)
+#             in Terraform state or environment variables),
+#             Service Bus (namespace + queue with DLQ for order messaging),
+#             Logic App (DLQ monitor with email notifications),
+#             API Connections (Service Bus + Office 365 for Logic App)
 # Note: Resource Group must already exist (managed outside Terraform)
 ###############################################################################
 
@@ -218,6 +221,273 @@ resource "azurerm_key_vault_secret" "blob_connection_string" {
   name         = "blob-connection-string"
   value        = azurerm_storage_account.orders.primary_connection_string
   key_vault_id = azurerm_key_vault.main.id
+}
+
+# ─── Azure Service Bus (Order Messaging) ────────────────────────────────────
+# Standard tier is required for DLQ (Dead-Letter Queue) support.
+# PetStoreApp sends order messages → queue → OrderItemsReserver consumes them.
+resource "azurerm_servicebus_namespace" "main" {
+  name                = "${var.project_name}-servicebus"
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = var.location
+  sku                 = "Standard"
+  tags                = var.tags
+}
+
+resource "azurerm_servicebus_queue" "order_items" {
+  name                                 = var.servicebus_queue_name
+  namespace_id                         = azurerm_servicebus_namespace.main.id
+  max_delivery_count                   = 3
+  lock_duration                        = "PT1M"
+  default_message_ttl                  = "P1D"
+  dead_lettering_on_message_expiration = true
+  requires_duplicate_detection         = false
+  requires_session                     = false
+  max_size_in_megabytes                = 1024
+}
+
+# Separate authorization rules for least-privilege access:
+# - PetStoreApp only needs Send
+# - OrderItemsReserver only needs Listen
+resource "azurerm_servicebus_queue_authorization_rule" "send" {
+  name     = "PetStoreAppSendPolicy"
+  queue_id = azurerm_servicebus_queue.order_items.id
+  send     = true
+  listen   = false
+  manage   = false
+}
+
+resource "azurerm_servicebus_queue_authorization_rule" "listen" {
+  name     = "OrderItemsReserverListenPolicy"
+  queue_id = azurerm_servicebus_queue.order_items.id
+  send     = false
+  listen   = true
+  manage   = false
+}
+
+# Store Service Bus connection strings in Key Vault
+resource "azurerm_key_vault_secret" "servicebus_send_connection_string" {
+  name         = "servicebus-send-connection-string"
+  value        = azurerm_servicebus_queue_authorization_rule.send.primary_connection_string
+  key_vault_id = azurerm_key_vault.main.id
+}
+
+resource "azurerm_key_vault_secret" "servicebus_listen_connection_string" {
+  name         = "servicebus-listen-connection-string"
+  value        = azurerm_servicebus_queue_authorization_rule.listen.primary_connection_string
+  key_vault_id = azurerm_key_vault.main.id
+}
+
+# ─── Logic App (DLQ Monitoring — sends email on failed order processing) ────
+# Monitors the Service Bus Dead-Letter Queue and sends an email notification
+# to the manager when messages land in the DLQ (all 3 retries exhausted).
+#
+# NOTE: After `terraform apply`, you must manually authorize the API connections
+# (Service Bus + Outlook.com) in the Azure Portal:
+#   Portal → Logic App → API Connections → Authorize → Save
+# API Connection: Service Bus (for Logic App to read from DLQ)
+resource "azurerm_api_connection" "servicebus" {
+  name                = "${var.project_name}-servicebus-connection"
+  resource_group_name = data.azurerm_resource_group.main.name
+  managed_api_id      = "/subscriptions/${var.subscription_id}/providers/Microsoft.Web/locations/${var.location}/managedApis/servicebus"
+  display_name        = "PetStore Service Bus"
+
+  parameter_values = {
+    connectionString = azurerm_servicebus_namespace.main.default_primary_connection_string
+  }
+
+  tags = var.tags
+
+  lifecycle {
+    # Connection authorization state is managed in Azure Portal
+    ignore_changes = [parameter_values]
+  }
+}
+
+# API Connection: Outlook.com (for Logic App to send email)
+# Uses the Outlook.com connector which supports personal @outlook.com/@hotmail.com accounts.
+# The Office 365 Outlook connector (office365) requires a licensed M365/Exchange Online mailbox.
+resource "azurerm_api_connection" "outlook" {
+  name                = "${var.project_name}-outlook-connection"
+  resource_group_name = data.azurerm_resource_group.main.name
+  managed_api_id      = "/subscriptions/${var.subscription_id}/providers/Microsoft.Web/locations/${var.location}/managedApis/outlook"
+  display_name        = "PetStore Outlook.com"
+
+  tags = var.tags
+
+  lifecycle {
+    # OAuth authorization is completed manually in Azure Portal
+    ignore_changes = [parameter_values]
+  }
+}
+
+# Logic App Workflow: DLQ monitor with full workflow definition.
+# Polls the Service Bus Dead-Letter Queue every 3 minutes. When a message
+# is found, it parses the order JSON and sends an email notification to
+# the manager with the order details for manual processing.
+resource "azurerm_logic_app_workflow" "dlq_monitor" {
+  name                = "${var.project_name}-dlq-monitor"
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = var.location
+  tags                = var.tags
+
+  workflow_parameters = {
+    "$connections" = jsonencode({
+      defaultValue = {}
+      type         = "Object"
+    })
+  }
+
+  parameters = {
+    "$connections" = jsonencode({
+      servicebus = {
+        connectionId   = azurerm_api_connection.servicebus.id
+        connectionName = azurerm_api_connection.servicebus.name
+        id             = "/subscriptions/${var.subscription_id}/providers/Microsoft.Web/locations/${var.location}/managedApis/servicebus"
+      }
+      outlook = {
+        connectionId   = azurerm_api_connection.outlook.id
+        connectionName = azurerm_api_connection.outlook.name
+        id             = "/subscriptions/${var.subscription_id}/providers/Microsoft.Web/locations/${var.location}/managedApis/outlook"
+      }
+    })
+  }
+
+  depends_on = [
+    azurerm_api_connection.servicebus,
+    azurerm_api_connection.outlook,
+  ]
+}
+
+# Trigger: Poll the Service Bus DLQ for dead-lettered messages every 3 minutes
+# Uses peek-lock mode so we can explicitly complete the message after processing.
+# Operation ID: GetNewMessageFromQueueWithPeekLock (queueType=DeadLetter)
+resource "azurerm_logic_app_trigger_custom" "dlq_trigger" {
+  name         = "When_a_message_is_received_in_DLQ_(peek-lock)"
+  logic_app_id = azurerm_logic_app_workflow.dlq_monitor.id
+
+  body = jsonencode({
+    type = "ApiConnection"
+    recurrence = {
+      frequency = "Minute"
+      interval  = 3
+    }
+    inputs = {
+      host = {
+        connection = {
+          name = "@parameters('$connections')['servicebus']['connectionId']"
+        }
+      }
+      method = "get"
+      path   = "/@{encodeURIComponent(encodeURIComponent('${var.servicebus_queue_name}'))}/messages/head/peek"
+      queries = {
+        queueType = "DeadLetter"
+      }
+    }
+  })
+}
+
+# Action: Parse the Service Bus message body as JSON (the order payload)
+resource "azurerm_logic_app_action_custom" "parse_order" {
+  name         = "Parse_Order_JSON"
+  logic_app_id = azurerm_logic_app_workflow.dlq_monitor.id
+
+  body = jsonencode({
+    type     = "ParseJson"
+    runAfter = {}
+    inputs = {
+      content = "@base64ToString(triggerBody()?['ContentData'])"
+      schema = {
+        type = "object"
+        properties = {
+          id = {
+            type = "string"
+          }
+          email = {
+            type = "string"
+          }
+          status = {
+            type = "string"
+          }
+          complete = {
+            type = "boolean"
+          }
+          products = {
+            type = "array"
+            items = {
+              type = "object"
+              properties = {
+                id       = { type = "integer" }
+                name     = { type = "string" }
+                quantity = { type = "integer" }
+                photoURL = { type = "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+# Action: Send email notification to the manager with the failed order details
+resource "azurerm_logic_app_action_custom" "send_email" {
+  name         = "Send_Manager_Email"
+  logic_app_id = azurerm_logic_app_workflow.dlq_monitor.id
+
+  depends_on = [azurerm_logic_app_action_custom.parse_order]
+
+  body = jsonencode({
+    type = "ApiConnection"
+    runAfter = {
+      Parse_Order_JSON = ["Succeeded"]
+    }
+    inputs = {
+      host = {
+        connection = {
+          name = "@parameters('$connections')['outlook']['connectionId']"
+        }
+      }
+      method = "post"
+      path   = "/v2/Mail"
+      body = {
+        To         = var.manager_email
+        Subject    = "PetStore Alert: Failed Order Upload - Order @{body('Parse_Order_JSON')?['id']}"
+        Body       = "<h2>Failed Order Upload Notification</h2><p>An order failed to upload to Blob Storage after <strong>3 retry attempts</strong> and has been moved to the Service Bus Dead-Letter Queue.</p><hr/><h3>Order Details</h3><table border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse;'><tr><th>Field</th><th>Value</th></tr><tr><td><strong>Order ID (Session)</strong></td><td>@{body('Parse_Order_JSON')?['id']}</td></tr><tr><td><strong>Customer Email</strong></td><td>@{coalesce(body('Parse_Order_JSON')?['email'], 'N/A')}</td></tr><tr><td><strong>Status</strong></td><td>@{coalesce(body('Parse_Order_JSON')?['status'], 'N/A')}</td></tr><tr><td><strong>Dead-Letter Reason</strong></td><td>@{triggerBody()?['Properties']?['DeadLetterReason']}</td></tr><tr><td><strong>Dead-Letter Description</strong></td><td>@{triggerBody()?['Properties']?['DeadLetterErrorDescription']}</td></tr><tr><td><strong>Enqueue Time (UTC)</strong></td><td>@{triggerBody()?['Properties']?['EnqueuedTimeUtc']}</td></tr></table><h3>Products in Order</h3><p>@{body('Parse_Order_JSON')?['products']}</p><hr/><p><strong>Action Required:</strong> Please process this order manually. The order data is available in the Service Bus Dead-Letter Queue for replay or manual investigation.</p><p><em>Queue: ${var.servicebus_queue_name} | Service Bus: ${var.project_name}-servicebus</em></p>"
+        Importance = "High"
+      }
+    }
+  })
+}
+
+# Action: Complete (remove) the dead-letter message after sending the email
+# Operation ID: CompleteMessageInQueue (queueType=DeadLetter)
+resource "azurerm_logic_app_action_custom" "complete_dlq_message" {
+  name         = "Complete_DLQ_Message"
+  logic_app_id = azurerm_logic_app_workflow.dlq_monitor.id
+
+  depends_on = [azurerm_logic_app_action_custom.send_email]
+
+  body = jsonencode({
+    type = "ApiConnection"
+    runAfter = {
+      Send_Manager_Email = ["Succeeded"]
+    }
+    inputs = {
+      host = {
+        connection = {
+          name = "@parameters('$connections')['servicebus']['connectionId']"
+        }
+      }
+      method = "delete"
+      path   = "/@{encodeURIComponent(encodeURIComponent('${var.servicebus_queue_name}'))}/messages/complete"
+      queries = {
+        lockToken = "@triggerBody()?['LockToken']"
+        queueType = "DeadLetter"
+        sessionId = ""
+      }
+    }
+  })
 }
 
 # ─── Entra ID App Registration (fully managed by Terraform) ─────────────────
@@ -590,7 +860,10 @@ resource "azurerm_container_app" "orderitemsreserver" {
   revision_mode                = "Single"
   tags                         = var.tags
 
-  depends_on = [azurerm_key_vault_access_policy.container_apps_identity]
+  depends_on = [
+    azurerm_key_vault_access_policy.container_apps_identity,
+    azurerm_servicebus_queue.order_items,
+  ]
 
   identity {
     type         = "UserAssigned"
@@ -611,6 +884,12 @@ resource "azurerm_container_app" "orderitemsreserver" {
   secret {
     name                = "blob-connection-string"
     key_vault_secret_id = azurerm_key_vault_secret.blob_connection_string.versionless_id
+    identity            = azurerm_user_assigned_identity.container_apps.id
+  }
+
+  secret {
+    name                = "servicebus-listen-connection-string"
+    key_vault_secret_id = azurerm_key_vault_secret.servicebus_listen_connection_string.versionless_id
     identity            = azurerm_user_assigned_identity.container_apps.id
   }
 
@@ -635,6 +914,22 @@ resource "azurerm_container_app" "orderitemsreserver" {
       env {
         name  = "BLOB_STORAGE_CONTAINER_NAME"
         value = var.blob_container_name
+      }
+      env {
+        name        = "SERVICEBUS_CONNECTION_STRING"
+        secret_name = "servicebus-listen-connection-string"
+      }
+      env {
+        name  = "SERVICEBUS_QUEUE_NAME"
+        value = var.servicebus_queue_name
+      }
+      env {
+        name        = "AzureWebJobsStorage"
+        secret_name = "blob-connection-string"
+      }
+      env {
+        name  = "FUNCTIONS_WORKER_RUNTIME"
+        value = "java"
       }
     }
 
@@ -670,6 +965,7 @@ resource "azurerm_container_app" "petstoreapp" {
     azurerm_container_app.orderservice,
     azurerm_container_app.orderitemsreserver,
     azurerm_key_vault_access_policy.container_apps_identity,
+    azurerm_servicebus_queue.order_items,
   ]
 
   identity {
@@ -691,6 +987,12 @@ resource "azurerm_container_app" "petstoreapp" {
   secret {
     name                = "entra-client-secret"
     key_vault_secret_id = azurerm_key_vault_secret.entra_client_secret.versionless_id
+    identity            = azurerm_user_assigned_identity.container_apps.id
+  }
+
+  secret {
+    name                = "servicebus-send-connection-string"
+    key_vault_secret_id = azurerm_key_vault_secret.servicebus_send_connection_string.versionless_id
     identity            = azurerm_user_assigned_identity.container_apps.id
   }
 
@@ -727,6 +1029,16 @@ resource "azurerm_container_app" "petstoreapp" {
       env {
         name  = "PETSTOREORDERITEMSRESERVER_URL"
         value = "https://${azurerm_container_app.orderitemsreserver.ingress[0].fqdn}"
+      }
+
+      # ── Azure Service Bus (order messaging) ──
+      env {
+        name        = "SERVICEBUS_CONNECTION_STRING"
+        secret_name = "servicebus-send-connection-string"
+      }
+      env {
+        name  = "SERVICEBUS_QUEUE_NAME"
+        value = var.servicebus_queue_name
       }
 
       # ── Entra ID OAuth2 authentication ──
