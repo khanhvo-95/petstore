@@ -75,16 +75,13 @@ public class OrderService {
 
         Boolean isComplete = order.getComplete();
         if (isComplete != null && isComplete) {
-            log.info("Completing order {} - preserving existing products", order.getId());
+            log.info("Completing order {} - clearing products", order.getId());
+            existingOrder.setProducts(new ArrayList<>());
             existingOrder.setComplete(true);
         } else {
             existingOrder.setComplete(isComplete != null ? isComplete : false);
             updateOrderProducts(existingOrder, order.getProducts());
         }
-
-        // Enrich product details (name, photoURL) before saving to Cosmos DB
-        List<Product> availableProducts = productService.getAvailableProducts();
-        enrichOrderWithProductDetails(existingOrder, availableProducts);
 
         return orderRepository.save(existingOrder);
     }

@@ -124,8 +124,6 @@
                     <appName>${functionAppName}</appName>
                     <resourceGroup>${functionResourceGroup}</resourceGroup>
                     <region>${functionAppRegion}</region>
-                    <!-- Extensions are resolved at runtime via extensionBundle in host.json -->
-                    <skipInstallExtensions>true</skipInstallExtensions>
                     <appSettings>
                         <property>
                             <name>FUNCTIONS_EXTENSION_VERSION</name>

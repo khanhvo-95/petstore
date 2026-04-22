@@ -40,29 +40,12 @@ AI_CONNECTION_STRING="InstrumentationKey=aa74e670-d8b5-4722-affb-40bab90974f2;In
 STORAGE_ACCOUNT_NAME="vopetorderstorage"       # Must be globally unique, lowercase, 3-24 chars
 BLOB_CONTAINER_NAME="orderitemsreserver"
 
-# ===================== SERVICE BUS (Order Messaging) =========================
-# Service Bus namespace for petstoreapp -> OrderItemsReserver messaging.
-# The queue uses DLQ failed message handling.
-SERVICEBUS_NAMESPACE="petstore-servicebus"     # maxDeliveryCount=3, DLQ enabled
-SERVICEBUS_QUEUE_NAME="order-items-queue"
-SERVICEBUS_SKU="Standard"                      # Standard tier required for DLQ
-
-# ===================== LOGIC APP (DLQ Monitoring) ============================
-# Logic App monitors the DLQ and sends email notifications for failed uploads.
-LOGIC_APP_NAME="petstore-dlq-monitor"
-MANAGER_EMAIL="${MANAGER_EMAIL:-manager@petstore.com}"
-
 # ===================== ENTRA ID (Authentication) =============================
 # Enable login/logout via Microsoft Entra ID OAuth2
 PETSTORE_SECURITY_ENABLED="true"
 AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"            # Set via: export AZURE_TENANT_ID="your-tenant-id"
 AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"            # Set via: export AZURE_CLIENT_ID="your-client-id"
 AZURE_CLIENT_SECRET="${AZURE_CLIENT_SECRET:-}"    # Set via: export AZURE_CLIENT_SECRET="your-client-secret"
-
-# ===================== COSMOS DB (Order Service) =============================
-COSMOS_ACCOUNT_NAME="petstore-cosmos"
-COSMOS_DATABASE_NAME="petstore"
-COSMOS_CONTAINER_NAME="orders"
 
 # ===================== REVISION / CANARY =====================================
 OLD_TAG="v1"

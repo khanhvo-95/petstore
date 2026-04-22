@@ -8,9 +8,6 @@ petstore:
       url: ${PETSTOREORDERSERVICE_URL:http://localhost:8083}
     orderitemsreserver:
       url: ${PETSTOREORDERITEMSRESERVER_URL:http://localhost:8085}
-  servicebus:
-    connection-string: ${SERVICEBUS_CONNECTION_STRING:}
-    queue-name: ${SERVICEBUS_QUEUE_NAME:order-items-queue}
   security:
     # Enable in Module 10
     enabled: ${PETSTORE_SECURITY_ENABLED:false}
